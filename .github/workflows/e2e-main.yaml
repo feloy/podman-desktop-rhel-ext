@@ -161,6 +161,7 @@ jobs:
         working-directory: ${{ env.REPOSITORY }}
         if: ${{ env.MODE == 'production' }}
         env:
+          DEBUGGING_PORT: '9223'
           PODMAN_DESKTOP_BINARY: ${{ env.PODMAN_DESKTOP_BINARY }}
           DVLPR_USERNAME: ${{ secrets.DVLPR_USERNAME }}
           DVLPR_PASSWORD: ${{ secrets.DVLPR_PASSWORD }}
