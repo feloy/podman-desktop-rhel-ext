@@ -42,8 +42,12 @@ on:
 
 jobs:
   e2e-tests:
-    name: Red Hat RHEL VM Extension E2E tests
-    runs-on: ubuntu-24.04
+    name: Red Hat RHEL VM Extension E2E tests / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-26]
     env: 
       KEEP_VIDEOS_ON_PASS: 'true'
       REPO: ${{ inputs.repositoryName || 'podman-desktop-rhel-ext' }}
@@ -83,9 +87,18 @@ jobs:
           node-version: 24
 
       - name: Update podman v5.x
+        if: runner.os == 'Linux'
         uses: redhat-actions/podman-install@16601a3a718acf7d6986140459092a2f5b941a03
 
+      - name: Install and start Podman on macOS
+        if: runner.os == 'macOS'
+        run: |
+          brew install podman
+          podman machine init
+          podman machine start
+
       - name: Set default browser desktop app and handlers
+        if: runner.os == 'Linux'
         run: |
           xdg-settings set default-web-browser firefox.desktop
           xdg-mime default firefox.desktop x-scheme-handler/https
@@ -95,21 +108,25 @@ jobs:
       # Install dbus-x11 package to allow dbus session for user for particular display (xvfb-maybe used in e2e test)
       # for reference, similar issue: https://github.com/actions/runner-images/issues/12127
       - name: Install dbus-x11 package
+        if: runner.os == 'Linux'
         run: sudo apt-get install dbus-x11
 
       - name: Install ffmpeg for xvfb recording
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
 
       # we might consider replacing with podman-desktop/e2e/.github/actions/pde2e-testenv-prepare@13e2c57c759137bfc1f437f221967461e8a98e2a
       # for now we do not need all three steps
-      - name: Revert unprivileged user namespace restrictions in Ubuntu 24.04
+      - name: Revert unprivileged user namespace restrictions on Linux
+        if: runner.os == 'Linux'
         run: |
           # allow unprivileged user namespace
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
       - name: Set Chromium policy for Podman Desktop app redirection from browser
+        if: runner.os == 'Linux'
         run: |
           echo '{"URLAllowlist": ["podman-desktop:*"]}' > url_allow_list.json
           sudo mkdir -p /etc/chromium/policies/managed
@@ -138,7 +155,9 @@ jobs:
           DVLPR_PASSWORD: ${{ secrets.DVLPR_PASSWORD }}
           AUTH_E2E_TESTS: true
         run: |
-          export $(dbus-launch)
+          if [[ "$RUNNER_OS" == 'Linux' ]]; then
+            export $(dbus-launch)
+          fi
           pnpm test:e2e
 
       - name: Publish Test Report
@@ -156,7 +175,7 @@ jobs:
         uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: e2e-tests
+          name: e2e-tests-${{ matrix.os }}
           path: |
             ./**/tests/**/output/
             ./**/tests/playwright/recordings/
