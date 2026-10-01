@@ -42,7 +42,6 @@ import {
   RunnerOptions,
   startChromium,
   test,
-  waitForPodmanMachineStartup,
   waitUntil,
 } from '@podman-desktop/tests-playwright';
 
@@ -78,12 +77,11 @@ test.use({
   }),
 });
 
-test.beforeAll(async ({ runner, welcomePage, page }) => {
+test.beforeAll(async ({ runner, welcomePage }) => {
   test.setTimeout(180_000);
   
   runner.setVideoAndTraceName('rhel-extension-e2e');
   await welcomePage.handleWelcomePage(true);
-  await waitForPodmanMachineStartup(page);
 
   if (isCI && isMac) {
     for (const folder of foldersToDelete) {

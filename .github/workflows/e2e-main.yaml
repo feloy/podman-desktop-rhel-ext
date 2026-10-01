@@ -86,17 +86,6 @@ jobs:
         with:
           node-version: 24
 
-      - name: Update podman v5.x
-        if: runner.os == 'Linux'
-        uses: redhat-actions/podman-install@16601a3a718acf7d6986140459092a2f5b941a03
-
-      - name: Install and start Podman on macOS
-        if: runner.os == 'macOS'
-        run: |
-          brew install podman
-          podman machine init
-          podman machine start
-
       - name: Set default browser desktop app and handlers
         if: runner.os == 'Linux'
         run: |
