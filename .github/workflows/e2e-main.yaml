@@ -39,12 +39,6 @@ on:
         description: 'Red Hat RHEL VM Extension repo branch'
         type: string
         required: true
-      mode:
-        description: 'Build mode for Podman Desktop'
-        type: choice
-        options:
-          - production
-          - development
 
 jobs:
   e2e-tests:
@@ -52,7 +46,6 @@ jobs:
     runs-on: ubuntu-24.04
     env: 
       KEEP_VIDEOS_ON_PASS: 'true'
-      MODE: ${{ inputs.mode || 'production' }}
       REPO: ${{ inputs.repositoryName || 'podman-desktop-rhel-ext' }}
       ORGANIZATION: ${{ inputs.organization || 'redhat-developer' }}
       BRANCH: ${{ inputs.branch || 'main' }}
@@ -79,18 +72,11 @@ jobs:
           fi
           echo "REPOSITORY=$repository" >> $GITHUB_ENV
 
-      # Checkout podman desktop
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: podman-desktop/podman-desktop
-          ref: main
-          path: podman-desktop
-
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         name: Install pnpm
         with:
           run_install: false
-          package_json_file: ./podman-desktop/package.json
+          package_json_file: ./${{ env.REPO }}/package.json
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -129,13 +115,6 @@ jobs:
           sudo mkdir -p /etc/chromium/policies/managed
           sudo cp url_allow_list.json /etc/chromium/policies/managed/url_allow_list.json
 
-      - name: Build Podman Desktop for E2E tests Development Mode
-        working-directory: ./podman-desktop
-        if: ${{ env.MODE == 'development' }}
-        run: |
-          pnpm install
-          pnpm test:e2e:build
-
       - name: Install Podman Desktop
         uses: podman-desktop/gh-extensions-actions/.github/actions/podman-desktop-install@3c89b3ea20c3262cb0f05894d0da4354d8c269a6 # v0.9.0
         with:
@@ -150,21 +129,8 @@ jobs:
           jq --arg version "$version" '.devDependencies."@podman-desktop/tests-playwright" = $version' package.json > package.json_tmp && mv package.json_tmp package.json
           pnpm install --no-frozen-lockfile
 
-      - name: Run All E2E tests in Red Hat RHEL VM Extension in Development Mode
+      - name: Run All E2E tests in Red Hat RHEL VM Extension
         working-directory: ${{ env.REPOSITORY }}
-        if: ${{ env.MODE == 'development' }}
-        env:
-          PODMAN_DESKTOP_ARGS: ${{ github.workspace }}/podman-desktop
-          DVLPR_USERNAME: ${{ secrets.DVLPR_USERNAME }}
-          DVLPR_PASSWORD: ${{ secrets.DVLPR_PASSWORD }}
-          AUTH_E2E_TESTS: true
-        run: |
-          export $(dbus-launch)
-          pnpm test:e2e
-
-      - name: Run All E2E tests in Red Hat RHEL VM Extension in Production mode
-        working-directory: ${{ env.REPOSITORY }}
-        if: ${{ env.MODE == 'production' }}
         env:
           DEBUGGING_PORT: '9223'
           PODMAN_DESKTOP_BINARY: ${{ env.PODMAN_DESKTOP_BINARY }}
