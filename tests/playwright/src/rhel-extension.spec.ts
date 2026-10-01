@@ -114,7 +114,7 @@ test.describe.serial('RHEL Extension E2E Tests', () => {
       await ensureRhelExtensionIsRemoved(navigationBar);
     });
 
-    test('Install extension through Extension page', async ({ navigationBar }) => {
+    test('Install extension through Extension page', async ({ navigationBar, page }) => {
       test.skip(!!skipInstallation);
       test.setTimeout(200_000);
 
@@ -124,6 +124,18 @@ test.describe.serial('RHEL Extension E2E Tests', () => {
       await playExpect
         .poll(async () => await extensionsPage.extensionIsInstalled(extensionLabel), { timeout: 30_000 })
         .toBeTruthy();
+
+      const extensionDetailsPage = await extensionsPage.openExtensionDetails(
+        extensionName,
+        extensionLabel,
+        extensionHeading,
+      );
+      await playExpect(extensionDetailsPage.heading).toBeVisible();
+      await playExpect(extensionDetailsPage.status).toHaveText('ACTIVE', { timeout: 30_000 });
+      await extensionDetailsPage.status.scrollIntoViewIfNeeded();
+
+      // Keep the active status visible long enough to read in the recording.
+      await page.waitForTimeout(5_000);
     });
   });
 
