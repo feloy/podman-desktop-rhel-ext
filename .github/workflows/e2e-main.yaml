@@ -111,6 +111,11 @@ jobs:
       - name: Install dbus-x11 package
         run: sudo apt-get install dbus-x11
 
+      - name: Install ffmpeg for xvfb recording
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
       # we might consider replacing with podman-desktop/e2e/.github/actions/pde2e-testenv-prepare@13e2c57c759137bfc1f437f221967461e8a98e2a
       # for now we do not need all three steps
       - name: Revert unprivileged user namespace restrictions in Ubuntu 24.04
@@ -186,4 +191,6 @@ jobs:
         if: always()
         with:
           name: e2e-tests
-          path: ./**/tests/**/output/
+          path: |
+            ./**/tests/**/output/
+            ./**/tests/playwright/recordings/
